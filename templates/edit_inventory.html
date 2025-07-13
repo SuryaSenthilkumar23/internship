@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Item - SML Isuzu Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-edit"></i> Edit Inventory Item</h1>
+    <a href="{{ url_for('view_inventory') }}" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Back to Inventory
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="inventory-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name">Item Name *</label>
+                <input type="text" 
+                       id="name" 
+                       name="name" 
+                       value="{{ item[1] }}" 
+                       placeholder="Enter item name" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <input type="text" 
+                       id="category" 
+                       name="category" 
+                       value="{{ item[2] }}" 
+                       placeholder="Enter category" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="quantity">Current Quantity *</label>
+                <input type="number" 
+                       id="quantity" 
+                       name="quantity" 
+                       value="{{ item[3] }}" 
+                       min="0" 
+                       placeholder="Enter current quantity" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="reorder_level">Reorder Level *</label>
+                <input type="number" 
+                       id="reorder_level" 
+                       name="reorder_level" 
+                       value="{{ item[4] }}" 
+                       min="0" 
+                       placeholder="Enter reorder level" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="cost_per_unit">Cost per Unit (₹) *</label>
+                <input type="number" 
+                       id="cost_per_unit" 
+                       name="cost_per_unit" 
+                       value="{{ item[5] }}" 
+                       min="0" 
+                       step="0.01" 
+                       placeholder="Enter cost per unit" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label>Total Value</label>
+                <input type="text" 
+                       id="total_value" 
+                       readonly 
+                       placeholder="Auto-calculated"
+                       class="readonly-input">
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update Item
+            </button>
+            <a href="{{ url_for('view_inventory') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="form-help">
+    <h3>Note:</h3>
+    <ul>
+        <li>To update stock levels, use the transaction system instead</li>
+        <li>Changing quantity here will not create a transaction record</li>
+        <li>Use this form only for updating item details</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Calculate total value in real-time
+function updateTotalValue() {
+    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+    const costPerUnit = parseFloat(document.getElementById('cost_per_unit').value) || 0;
+    const totalValue = quantity * costPerUnit;
+    
+    document.getElementById('total_value').value = totalValue.toLocaleString('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+    });
+}
+
+// Initialize total value and add event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    updateTotalValue();
+    document.getElementById('quantity').addEventListener('input', updateTotalValue);
+    document.getElementById('cost_per_unit').addEventListener('input', updateTotalValue);
+});
+
+// Form validation
+document.querySelector('.inventory-form').addEventListener('submit', function(e) {
+    const reorderLevel = parseInt(document.getElementById('reorder_level').value);
+    const quantity = parseInt(document.getElementById('quantity').value);
+    
+    if (reorderLevel > quantity) {
+        if (!confirm('Reorder level is higher than current quantity. This will trigger a low stock alert. Continue?')) {
+            e.preventDefault();
+        }
+    }
+});
+</script>
+{% endblock %}

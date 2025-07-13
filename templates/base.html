@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SML Isuzu - Inventory Management{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-boxes"></i>
+                <span>SML Isuzu Inventory</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('dashboard') }}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li><a href="{{ url_for('view_inventory') }}" class="nav-link">
+                    <i class="fas fa-warehouse"></i> Inventory
+                </a></li>
+                <li><a href="{{ url_for('add_inventory') }}" class="nav-link">
+                    <i class="fas fa-plus"></i> Add Item
+                </a></li>
+                <li><a href="{{ url_for('view_transactions') }}" class="nav-link">
+                    <i class="fas fa-exchange-alt"></i> Transactions
+                </a></li>
+                <li><a href="{{ url_for('add_transaction') }}" class="nav-link">
+                    <i class="fas fa-plus-circle"></i> New Transaction
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            <i class="fas fa-info-circle"></i>
+                            {{ message }}
+                            <button class="flash-close" onclick="this.parentElement.style.display='none'">×</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 SML Isuzu Inventory Management System</p>
+            <p>Built for internship project</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

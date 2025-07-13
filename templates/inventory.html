@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory - SML Isuzu Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-warehouse"></i> Inventory Management</h1>
+    <a href="{{ url_for('add_inventory') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Item
+    </a>
+</div>
+
+<div class="inventory-controls">
+    <form method="GET" class="search-form">
+        <div class="search-group">
+            <input type="text" 
+                   name="search" 
+                   placeholder="Search by name or category..." 
+                   value="{{ search_query }}"
+                   class="search-input">
+            <button type="submit" class="btn btn-search">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        
+        <div class="filter-group">
+            <select name="category" class="filter-select">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category }}" {% if category == category_filter %}selected{% endif %}>
+                        {{ category }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-filter">Filter</button>
+        </div>
+        
+        {% if search_query or category_filter %}
+            <a href="{{ url_for('view_inventory') }}" class="btn btn-clear">
+                <i class="fas fa-times"></i> Clear
+            </a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="inventory-stats">
+    <div class="stat-item">
+        <span class="stat-label">Total Items:</span>
+        <span class="stat-value">{{ items|length }}</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Total Value:</span>
+        <span class="stat-value">{{ (items|sum(attribute=6)) | currency }}</span>
+    </div>
+</div>
+
+<div class="inventory-legend">
+    <div class="legend-item">
+        <span class="status-indicator high-stock"></span>
+        <span>Good Stock</span>
+    </div>
+    <div class="legend-item">
+        <span class="status-indicator medium-stock"></span>
+        <span>Medium Stock</span>
+    </div>
+    <div class="legend-item">
+        <span class="status-indicator low-stock"></span>
+        <span>Low Stock</span>
+    </div>
+</div>
+
+{% if items %}
+<div class="inventory-table-container">
+    <table class="inventory-table">
+        <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Reorder Level</th>
+                <th>Cost per Unit</th>
+                <th>Total Value</th>
+                <th>Stock Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr class="inventory-row stock-{{ item[7] }}">
+                <td class="item-name">{{ item[1] }}</td>
+                <td class="item-category">{{ item[2] }}</td>
+                <td class="item-quantity">
+                    <span class="quantity-badge {{ 'out-of-stock' if item[3] == 0 else 'low-stock' if item[3] <= item[4] else 'good-stock' }}">
+                        {{ item[3] }}
+                    </span>
+                </td>
+                <td class="reorder-level">{{ item[4] }}</td>
+                <td class="cost-per-unit">{{ item[5] | currency }}</td>
+                <td class="total-value">{{ item[6] | currency }}</td>
+                <td class="stock-status">
+                    {% if item[7] == 'low' %}
+                        <span class="status-badge low-stock">
+                            <i class="fas fa-exclamation-triangle"></i> Low Stock
+                        </span>
+                    {% elif item[7] == 'medium' %}
+                        <span class="status-badge medium-stock">
+                            <i class="fas fa-minus-circle"></i> Medium Stock
+                        </span>
+                    {% else %}
+                        <span class="status-badge high-stock">
+                            <i class="fas fa-check-circle"></i> Good Stock
+                        </span>
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    <a href="{{ url_for('edit_inventory', item_id=item[0]) }}" 
+                       class="btn btn-sm btn-edit" 
+                       title="Edit Item">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <button class="btn btn-sm btn-transaction transaction-btn" 
+                            data-item-id="{{ item[0] }}"
+                            data-item-name="{{ item[1] }}"
+                            data-current-stock="{{ item[3] }}"
+                            title="Quick Transaction">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="no-data">
+    <i class="fas fa-inbox"></i>
+    <h3>No items found</h3>
+    {% if search_query or category_filter %}
+        <p>No items match your search criteria.</p>
+        <a href="{{ url_for('view_inventory') }}" class="btn btn-outline">View All Items</a>
+    {% else %}
+        <p>Your inventory is empty. Add your first item to get started.</p>
+        <a href="{{ url_for('add_inventory') }}" class="btn btn-primary">Add First Item</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Quick Transaction Modal -->
+<div id="transactionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Quick Transaction</h3>
+            <span class="close" onclick="closeTransactionModal()">&times;</span>
+        </div>
+        <form id="quickTransactionForm">
+            <input type="hidden" id="modalItemId" name="item_id">
+            <div class="form-group">
+                <label>Item:</label>
+                <input type="text" id="modalItemName" readonly>
+            </div>
+            <div class="form-group">
+                <label>Current Stock:</label>
+                <input type="number" id="modalCurrentStock" readonly>
+            </div>
+            <div class="form-group">
+                <label for="transactionType">Transaction Type:</label>
+                <select id="transactionType" name="transaction_type" required>
+                    <option value="incoming">Incoming (Add Stock)</option>
+                    <option value="outgoing">Outgoing (Remove Stock)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="quantity">Quantity:</label>
+                <input type="number" id="quantity" name="quantity" min="1" required>
+            </div>
+            <div class="form-group">
+                <label for="remarks">Remarks:</label>
+                <textarea id="remarks" name="remarks" rows="3" placeholder="Optional remarks..."></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Add Transaction</button>
+                <button type="button" class="btn btn-secondary" onclick="closeTransactionModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Quick transaction modal functionality
+function showTransactionModal(itemId, itemName, currentStock) {
+    document.getElementById('modalItemId').value = itemId;
+    document.getElementById('modalItemName').value = itemName;
+    document.getElementById('modalCurrentStock').value = currentStock;
+    document.getElementById('transactionModal').style.display = 'block';
+}
+
+// Add event listeners for transaction buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionBtns = document.querySelectorAll('.transaction-btn');
+    transactionBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            const itemName = this.dataset.itemName;
+            const currentStock = this.dataset.currentStock;
+            showTransactionModal(itemId, itemName, currentStock);
+        });
+    });
+});
+
+function closeTransactionModal() {
+    document.getElementById('transactionModal').style.display = 'none';
+    document.getElementById('quickTransactionForm').reset();
+}
+
+// Handle quick transaction form submission
+document.getElementById('quickTransactionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/transactions/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            closeTransactionModal();
+            location.reload(); // Reload to show updated stock
+        } else {
+            alert('Error adding transaction');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding transaction');
+    });
+});
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('transactionModal');
+    if (event.target === modal) {
+        closeTransactionModal();
+    }
+}
+
+// Live search functionality
+const searchInput = document.querySelector('.search-input');
+let searchTimeout;
+
+searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const query = this.value.trim();
+        if (query.length > 2 || query.length === 0) {
+            this.form.submit();
+        }
+    }, 500);
+});
+</script>
+{% endblock %}
