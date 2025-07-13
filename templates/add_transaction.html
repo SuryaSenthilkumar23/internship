@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Add Transaction - SML Isuzu Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-plus-circle"></i> Add New Transaction</h1>
+    <a href="{{ url_for('view_transactions') }}" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Back to Transactions
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="transaction-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="item_id">Select Item *</label>
+                <select id="item_id" name="item_id" required>
+                    <option value="">Choose an item...</option>
+                    {% for item in items %}
+                        <option value="{{ item[0] }}" 
+                                data-current-stock="{{ item[3] }}"
+                                data-cost="{{ item[5] }}">
+                            {{ item[1] }} ({{ item[2] }}) - Current: {{ item[3] }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Current Stock</label>
+                <input type="text" 
+                       id="current_stock" 
+                       readonly 
+                       placeholder="Select an item first"
+                       class="readonly-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="transaction_type">Transaction Type *</label>
+                <select id="transaction_type" name="transaction_type" required>
+                    <option value="">Choose type...</option>
+                    <option value="incoming">Incoming (Add Stock)</option>
+                    <option value="outgoing">Outgoing (Remove Stock)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="quantity">Quantity *</label>
+                <input type="number" 
+                       id="quantity" 
+                       name="quantity" 
+                       min="1" 
+                       placeholder="Enter quantity" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label>New Stock Level</label>
+                <input type="text" 
+                       id="new_stock" 
+                       readonly 
+                       placeholder="Auto-calculated"
+                       class="readonly-input">
+            </div>
+            
+            <div class="form-group">
+                <label>Transaction Value</label>
+                <input type="text" 
+                       id="transaction_value" 
+                       readonly 
+                       placeholder="Auto-calculated"
+                       class="readonly-input">
+            </div>
+        </div>
+        
+        <div class="form-group full-width">
+            <label for="remarks">Remarks</label>
+            <textarea id="remarks" 
+                      name="remarks" 
+                      rows="3" 
+                      placeholder="Enter any additional notes or remarks (optional)"></textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Add Transaction
+            </button>
+            <a href="{{ url_for('view_transactions') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="form-help">
+    <h3>Transaction Types:</h3>
+    <ul>
+        <li><strong>Incoming:</strong> Stock received, purchases, returns from customers</li>
+        <li><strong>Outgoing:</strong> Stock sold, issued, damaged, or lost</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Update form fields based on selected item
+function updateItemDetails() {
+    const itemSelect = document.getElementById('item_id');
+    const currentStockInput = document.getElementById('current_stock');
+    const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+    
+    if (selectedOption.value) {
+        const currentStock = selectedOption.dataset.currentStock;
+        currentStockInput.value = currentStock;
+        updateCalculations();
+    } else {
+        currentStockInput.value = '';
+        document.getElementById('new_stock').value = '';
+        document.getElementById('transaction_value').value = '';
+    }
+}
+
+// Calculate new stock level and transaction value
+function updateCalculations() {
+    const itemSelect = document.getElementById('item_id');
+    const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+    const transactionType = document.getElementById('transaction_type').value;
+    const quantity = parseInt(document.getElementById('quantity').value) || 0;
+    
+    if (selectedOption.value && transactionType && quantity > 0) {
+        const currentStock = parseInt(selectedOption.dataset.currentStock);
+        const cost = parseFloat(selectedOption.dataset.cost);
+        let newStock;
+        
+        if (transactionType === 'incoming') {
+            newStock = currentStock + quantity;
+        } else {
+            newStock = currentStock - quantity;
+        }
+        
+        const transactionValue = quantity * cost;
+        
+        document.getElementById('new_stock').value = newStock;
+        document.getElementById('transaction_value').value = transactionValue.toLocaleString('en-IN', {
+            style: 'currency',
+            currency: 'INR'
+        });
+        
+        // Show warning if stock would go negative
+        if (newStock < 0) {
+            document.getElementById('new_stock').style.color = 'red';
+            document.getElementById('new_stock').value = newStock + ' (Insufficient Stock!)';
+        } else {
+            document.getElementById('new_stock').style.color = '';
+        }
+    }
+}
+
+// Add event listeners
+document.getElementById('item_id').addEventListener('change', updateItemDetails);
+document.getElementById('transaction_type').addEventListener('change', updateCalculations);
+document.getElementById('quantity').addEventListener('input', updateCalculations);
+
+// Form validation
+document.querySelector('.transaction-form').addEventListener('submit', function(e) {
+    const itemSelect = document.getElementById('item_id');
+    const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+    const transactionType = document.getElementById('transaction_type').value;
+    const quantity = parseInt(document.getElementById('quantity').value) || 0;
+    
+    if (transactionType === 'outgoing' && selectedOption.value) {
+        const currentStock = parseInt(selectedOption.dataset.currentStock);
+        if (quantity > currentStock) {
+            if (!confirm('This transaction will result in negative stock. Continue?')) {
+                e.preventDefault();
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Add Item - SML Isuzu Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-plus"></i> Add New Inventory Item</h1>
+    <a href="{{ url_for('view_inventory') }}" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Back to Inventory
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="inventory-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name">Item Name *</label>
+                <input type="text" 
+                       id="name" 
+                       name="name" 
+                       placeholder="Enter item name" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <input type="text" 
+                       id="category" 
+                       name="category" 
+                       placeholder="Enter category" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="quantity">Initial Quantity *</label>
+                <input type="number" 
+                       id="quantity" 
+                       name="quantity" 
+                       min="0" 
+                       placeholder="Enter initial quantity" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="reorder_level">Reorder Level *</label>
+                <input type="number" 
+                       id="reorder_level" 
+                       name="reorder_level" 
+                       min="0" 
+                       placeholder="Enter reorder level" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label for="cost_per_unit">Cost per Unit (₹) *</label>
+                <input type="number" 
+                       id="cost_per_unit" 
+                       name="cost_per_unit" 
+                       min="0" 
+                       step="0.01" 
+                       placeholder="Enter cost per unit" 
+                       required>
+            </div>
+            
+            <div class="form-group">
+                <label>Total Value</label>
+                <input type="text" 
+                       id="total_value" 
+                       readonly 
+                       placeholder="Auto-calculated"
+                       class="readonly-input">
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Add Item
+            </button>
+            <a href="{{ url_for('view_inventory') }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="form-help">
+    <h3>Tips:</h3>
+    <ul>
+        <li>Item names must be unique in the system</li>
+        <li>Categories help organize your inventory</li>
+        <li>Reorder level triggers low stock alerts</li>
+        <li>All fields marked with * are required</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Calculate total value in real-time
+function updateTotalValue() {
+    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+    const costPerUnit = parseFloat(document.getElementById('cost_per_unit').value) || 0;
+    const totalValue = quantity * costPerUnit;
+    
+    document.getElementById('total_value').value = totalValue.toLocaleString('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+    });
+}
+
+// Add event listeners
+document.getElementById('quantity').addEventListener('input', updateTotalValue);
+document.getElementById('cost_per_unit').addEventListener('input', updateTotalValue);
+
+// Form validation
+document.querySelector('.inventory-form').addEventListener('submit', function(e) {
+    const reorderLevel = parseInt(document.getElementById('reorder_level').value);
+    const quantity = parseInt(document.getElementById('quantity').value);
+    
+    if (reorderLevel > quantity) {
+        if (!confirm('Reorder level is higher than initial quantity. This will trigger a low stock alert. Continue?')) {
+            e.preventDefault();
+        }
+    }
+});
+</script>
+{% endblock %}

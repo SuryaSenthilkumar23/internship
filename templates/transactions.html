@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - SML Isuzu Inventory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-exchange-alt"></i> Transaction History</h1>
+    <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Transaction
+    </a>
+</div>
+
+<div class="transaction-summary">
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-icon incoming">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="summary-info">
+                <h3>{{ summary.total_incoming }}</h3>
+                <p>Total Incoming</p>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon outgoing">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="summary-info">
+                <h3>{{ summary.total_outgoing }}</h3>
+                <p>Total Outgoing</p>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="summary-info">
+                <h3>{{ summary.total_transactions }}</h3>
+                <p>Total Transactions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if transactions %}
+<div class="transactions-table-container">
+    <table class="transactions-table">
+        <thead>
+            <tr>
+                <th>Date & Time</th>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Transaction Type</th>
+                <th>Quantity</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in transactions %}
+            <tr class="transaction-row">
+                <td class="transaction-date">{{ transaction[6] | datetime }}</td>
+                <td class="item-name">{{ transaction[1] }}</td>
+                <td class="item-category">{{ transaction[2] }}</td>
+                <td class="transaction-type">
+                    {% if transaction[3] == 'incoming' %}
+                        <span class="transaction-badge incoming">
+                            <i class="fas fa-arrow-up"></i> Incoming
+                        </span>
+                    {% else %}
+                        <span class="transaction-badge outgoing">
+                            <i class="fas fa-arrow-down"></i> Outgoing
+                        </span>
+                    {% endif %}
+                </td>
+                <td class="transaction-quantity">
+                    {% if transaction[3] == 'incoming' %}
+                        <span class="quantity-positive">+{{ transaction[4] }}</span>
+                    {% else %}
+                        <span class="quantity-negative">-{{ transaction[4] }}</span>
+                    {% endif %}
+                </td>
+                <td class="transaction-remarks">{{ transaction[5] or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="no-data">
+    <i class="fas fa-exchange-alt"></i>
+    <h3>No transactions found</h3>
+    <p>Start by adding your first transaction to track inventory changes.</p>
+    <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">Add First Transaction</a>
+</div>
+{% endif %}
+
+<div class="transaction-actions">
+    <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Transaction
+    </a>
+    <a href="{{ url_for('view_inventory') }}" class="btn btn-outline">
+        <i class="fas fa-warehouse"></i> View Inventory
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add some basic interactivity for better UX
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects and click handlers for table rows
+    const rows = document.querySelectorAll('.transaction-row');
+    rows.forEach(row => {
+        row.addEventListener('click', function() {
+            this.classList.toggle('selected');
+        });
+    });
+    
+    // Auto-refresh transaction list every 60 seconds
+    setInterval(function() {
+        location.reload();
+    }, 60000);
+});
+</script>
+{% endblock %}
